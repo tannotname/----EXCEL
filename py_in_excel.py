@@ -1,6 +1,9 @@
 import openpyxl
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
+import os
+import sys
+import platform
 
 def find_and_update(file_path, search_value, add_hours, record_id, history_text, entry_id, entry_hours, entry_record):
     wb = openpyxl.load_workbook(file_path)
@@ -57,30 +60,57 @@ def submit_data(entry_id, entry_hours, entry_record, history_text, file_path):
     except ValueError:
         messagebox.showwarning("格式錯誤", "時數請輸入數字！")
 
+def select_file(entry_file):
+    file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xlsm")])
+    if file_path:
+        entry_file.delete(0, tk.END)
+        entry_file.insert(0, file_path)
+
+def apply_system_theme(root):
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            is_dark_mode = ctypes.windll.uxtheme.ShouldAppsUseDarkMode()
+            root.configure(bg="#2e2e2e" if is_dark_mode else "#f0f0f0")
+        except:
+            root.configure(bg="#f0f0f0")
+    else:
+        root.configure(bg=root.cget("bg"))
+
 def main():
-    file_path = "113-1-1生活記點名單.xlsx"
-    
     root = tk.Tk()
     root.title("學生時數登記系統")
+    root.geometry("600x400")  # 設定初始視窗大小
+    root.resizable(True, True)  # 允許視窗自由縮放
     
-    tk.Label(root, text="學號或姓名:").grid(row=0, column=0)
+    apply_system_theme(root)
+    
+    tk.Label(root, text="選擇檔案:").grid(row=0, column=0)
+    entry_file = tk.Entry(root, width=40)
+    entry_file.grid(row=0, column=1)
+    tk.Button(root, text="瀏覽", command=lambda: select_file(entry_file)).grid(row=0, column=2)
+    
+    tk.Label(root, text="學號或姓名:").grid(row=1, column=0)
     entry_id = tk.Entry(root)
-    entry_id.grid(row=0, column=1)
+    entry_id.grid(row=1, column=1)
     
-    tk.Label(root, text="增加的時數:").grid(row=1, column=0)
+    tk.Label(root, text="增加的時數:").grid(row=2, column=0)
     entry_hours = tk.Entry(root)
-    entry_hours.grid(row=1, column=1)
+    entry_hours.grid(row=2, column=1)
     
-    tk.Label(root, text="登記編號:").grid(row=2, column=0)
+    tk.Label(root, text="登記編號:").grid(row=3, column=0)
     entry_record = tk.Entry(root)
-    entry_record.grid(row=2, column=1)
+    entry_record.grid(row=3, column=1)
     
     history_text = tk.Text(root, height=10, width=50)
-    history_text.grid(row=4, column=0, columnspan=2)
-    tk.Label(root, text="歷史紀錄:").grid(row=3, column=0, columnspan=2)
+    history_text.grid(row=5, column=0, columnspan=3, sticky="nsew")
+    tk.Label(root, text="歷史紀錄:").grid(row=4, column=0, columnspan=3)
     
-    submit_button = tk.Button(root, text="提交", command=lambda: submit_data(entry_id, entry_hours, entry_record, history_text, file_path))
-    submit_button.grid(row=5, column=0, columnspan=2)
+    submit_button = tk.Button(root, text="提交", command=lambda: submit_data(entry_id, entry_hours, entry_record, history_text, entry_file.get()))
+    submit_button.grid(row=6, column=0, columnspan=3)
+    
+    root.columnconfigure(1, weight=1)  # 讓輸入欄位可以伸縮
+    root.rowconfigure(5, weight=1)  # 讓歷史紀錄可以伸縮
     
     root.mainloop()
     
