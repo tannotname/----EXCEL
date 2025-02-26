@@ -1,6 +1,6 @@
 import openpyxl
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, colorchooser, Toplevel
 import os
 import sys
 import platform
@@ -45,72 +45,97 @@ def find_and_update(file_path, search_value, add_hours, record_id, history_text,
     wb.close()
     messagebox.showwarning("錯誤", "未找到符合條件的學生。")
 
-def submit_data(entry_id, entry_hours, entry_record, history_text, file_path):
-    search_value = entry_id.get().strip()
-    add_hours = entry_hours.get().strip()
-    record_id = entry_record.get().strip()
-    
-    if not search_value or not add_hours or not record_id:
-        messagebox.showwarning("輸入錯誤", "請填寫所有欄位！")
-        return
-    
-    try:
-        add_hours = int(add_hours)
-        find_and_update(file_path, search_value, add_hours, record_id, history_text, entry_id, entry_hours, entry_record)
-    except ValueError:
-        messagebox.showwarning("格式錯誤", "時數請輸入數字！")
-
-def select_file(entry_file):
+def select_file(label_file):
     file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xlsm")])
     if file_path:
-        entry_file.delete(0, tk.END)
-        entry_file.insert(0, file_path)
+        label_file.config(text=os.path.basename(file_path))
+        return file_path
+    return None
 
-def apply_system_theme(root):
-    if platform.system() == "Windows":
-        try:
-            import ctypes
-            is_dark_mode = ctypes.windll.uxtheme.ShouldAppsUseDarkMode()
-            root.configure(bg="#2e2e2e" if is_dark_mode else "#f0f0f0")
-        except:
-            root.configure(bg="#f0f0f0")
-    else:
-        root.configure(bg=root.cget("bg"))
+def open_settings(root, font_size_var, widgets):
+    settings_win = Toplevel(root)
+    settings_win.title("設定")
+    settings_win.geometry("400x300")
+    
+    tk.Label(settings_win, text="文字大小:", font=("標楷體", 12)).pack()
+    scale = tk.Scale(settings_win, from_=8, to=20, orient=tk.HORIZONTAL, variable=font_size_var)
+    scale.pack()
+    
+    def apply_font_size():
+        new_size = font_size_var.get()
+        for widget in widgets:
+            widget.config(font=("標楷體", new_size))
+    
+    tk.Button(settings_win, text="套用", command=apply_font_size, font=("標楷體", 12)).pack()
+    
+    tk.Label(settings_win, text="背景顏色:", font=("標楷體", 12)).pack()
+    tk.Button(settings_win, text="選擇顏色", command=lambda: change_color(root), font=("標楷體", 12)).pack()
+
+def change_color(root):
+    color = colorchooser.askcolor()[1]
+    if color:
+        root.configure(bg=color)
+
+def focus_next_widget(event):
+    event.widget.tk_focusNext().focus()
+    return "break"
+
+def focus_prev_widget(event):
+    event.widget.tk_focusPrev().focus()
+    return "break"
 
 def main():
     root = tk.Tk()
     root.title("學生時數登記系統")
-    root.geometry("600x400")  # 設定初始視窗大小
+    root.geometry("800x600")  # 提高介面解析度
     root.resizable(True, True)  # 允許視窗自由縮放
     
-    apply_system_theme(root)
+    font_size = tk.IntVar(value=12)
     
-    tk.Label(root, text="選擇檔案:").grid(row=0, column=0)
-    entry_file = tk.Entry(root, width=40)
-    entry_file.grid(row=0, column=1)
-    tk.Button(root, text="瀏覽", command=lambda: select_file(entry_file)).grid(row=0, column=2)
+    widgets = []
     
-    tk.Label(root, text="學號或姓名:").grid(row=1, column=0)
-    entry_id = tk.Entry(root)
-    entry_id.grid(row=1, column=1)
+    # 設置功能按鈕
+    top_frame = tk.Frame(root)
+    top_frame.grid(row=0, column=0, columnspan=3, sticky="w")
     
-    tk.Label(root, text="增加的時數:").grid(row=2, column=0)
-    entry_hours = tk.Entry(root)
-    entry_hours.grid(row=2, column=1)
+    label_file = tk.Label(top_frame, text="未選擇檔案", font=("標楷體", 12))
+    label_file.pack(side="left", padx=10)
     
-    tk.Label(root, text="登記編號:").grid(row=3, column=0)
-    entry_record = tk.Entry(root)
-    entry_record.grid(row=3, column=1)
+    tk.Button(top_frame, text="開啟檔案", command=lambda: select_file(label_file), font=("標楷體", 12)).pack(side="left", padx=5)
+    tk.Button(top_frame, text="設定", command=lambda: open_settings(root, font_size, widgets), font=("標楷體", 12)).pack(side="left", padx=5)
     
-    history_text = tk.Text(root, height=10, width=50)
-    history_text.grid(row=5, column=0, columnspan=3, sticky="nsew")
-    tk.Label(root, text="歷史紀錄:").grid(row=4, column=0, columnspan=3)
+    labels = ["學號或姓名:", "增加的時數:", "登記編號:", "歷史紀錄:"]
+    entries = []
     
-    submit_button = tk.Button(root, text="提交", command=lambda: submit_data(entry_id, entry_hours, entry_record, history_text, entry_file.get()))
-    submit_button.grid(row=6, column=0, columnspan=3)
+    for i, text in enumerate(labels[:-1]):
+        label = tk.Label(root, text=text, font=("標楷體", 12))
+        label.grid(row=i+1, column=0)
+        widgets.append(label)
+        entry = tk.Entry(root, font=("標楷體", 12))
+        entry.grid(row=i+1, column=1)
+        entry.bind("<Return>", focus_next_widget)
+        entry.bind("<Down>", focus_next_widget)
+        entry.bind("<Up>", focus_prev_widget)
+        entries.append(entry)
+        widgets.append(entry)
     
-    root.columnconfigure(1, weight=1)  # 讓輸入欄位可以伸縮
-    root.rowconfigure(5, weight=1)  # 讓歷史紀錄可以伸縮
+    entry_id, entry_hours, entry_record = entries
+    
+    submit_button = tk.Button(root, text="提交", font=("標楷體", 12), 
+                              command=lambda: find_and_update(label_file.cget("text"), entry_id.get(), int(entry_hours.get()), entry_record.get(), history_text, entry_id, entry_hours, entry_record))
+    submit_button.grid(row=4, column=1, sticky="w")  # 提交按鈕移到登記編號輸入框的下方
+    widgets.append(submit_button)
+    
+    history_label = tk.Label(root, text=labels[-1], font=("標楷體", 12))
+    history_label.grid(row=5, column=0, columnspan=3)
+    widgets.append(history_label)
+    
+    history_text = tk.Text(root, height=15, width=60, font=("標楷體", 12))
+    history_text.grid(row=6, column=0, columnspan=3, sticky="nsew")
+    widgets.append(history_text)
+    
+    root.columnconfigure(1, weight=1)
+    root.rowconfigure(6, weight=1)
     
     root.mainloop()
     
