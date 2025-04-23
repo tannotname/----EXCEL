@@ -2,8 +2,6 @@ import openpyxl
 import tkinter as tk
 from tkinter import messagebox, filedialog, colorchooser, Toplevel
 import os
-import sys
-import platform
 
 def find_and_update(file_path, search_value, add_hours, record_id, history_text, entry_id, entry_hours, entry_record):
     wb = openpyxl.load_workbook(file_path)
@@ -30,10 +28,10 @@ def find_and_update(file_path, search_value, add_hours, record_id, history_text,
                 
                 wb.save(file_path)
                 wb.close()
-                messagebox.showinfo("成功", f"更新成功：{search_value}\n時數 +{add_hours}\n登記編號 {record_id}")
+                messagebox.showinfo("成功", f"更新成功：{search_value} {student_name}\n時數 +{add_hours}\n登記編號 {record_id}")
                 
                 # 記錄歷史紀錄
-                history_text.insert(tk.END, f"{search_value} | +{add_hours} 小時 | 編號: {record_id}\n")
+                history_text.insert(tk.END, f"{search_value} {student_name} | +{add_hours} 點 | 編號: {record_id}\n")
                 history_text.yview(tk.END)
                 
                 # 清空輸入欄位
